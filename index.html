@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sorteio de Clientes em Dia</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .login-section, .upload-section, .sorteio-section, .resultados-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        input[type="file"] {
+            margin: 10px 0;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .ganhador {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-left: 4px solid #4CAF50;
+        }
+        .bairro-input {
+            margin-left: 10px;
+            padding: 5px;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-section" id="loginSection">
+        <h2>Login</h2>
+        <input type="email" id="email" placeholder="E-mail" required>
+        <input type="password" id="password" placeholder="Senha" required>
+        <button id="loginBtn">Entrar</button>
+        <button id="logoutBtn" class="hidden">Sair</button>
+        <p id="loginMessage"></p>
+    </div>
+
+    <div class="upload-section hidden" id="uploadSection">
+        <h2>Upload do Arquivo</h2>
+        <input type="file" id="fileInput" accept=".xls,.xlsx">
+        <button id="processBtn" disabled>Processar Arquivo</button>
+        <div id="fileInfo"></div>
+    </div>
+
+    <div class="sorteio-section hidden" id="sorteioSection">
+        <h2>Sorteio</h2>
+        <button id="sortearCaragua1">Sortear 1º cliente Caraguá</button>
+        <button id="sortearCaragua2">Sortear 2º cliente Caraguá</button>
+        <button id="sortearUbatuba1">Sortear 1º cliente Ubatuba</button>
+        <button id="sortearUbatuba2">Sortear 2º cliente Ubatuba</button>
+    </div>
+
+    <div class="resultados-section hidden" id="resultadosSection">
+        <h2>Resultados</h2>
+        <div id="ganhadoresContainer"></div>
+        <button id="gerarTextoBtn">Gerar Texto</button>
+    </div>
+
+    <script>
+        // Configuração do Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyC5nm6zRekev1RBN2I-xV4_LmeTkaCZx9k",
+            authDomain: "sorteioemdia.firebaseapp.com",
+            projectId: "sorteioemdia",
+            storageBucket: "sorteioemdia.firebasestorage.app",
+            messagingSenderId: "710727215154",
+            appId: "1:710727215154:web:99b270016df31a3531b42b",
+            databaseURL: "https://sorteioemdia-default-rtdb.firebaseio.com/"
+        };
+
+        // Inicializa o Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const database = firebase.database();
+
+        // Elementos da interface
+        const loginSection = document.getElementById('loginSection');
+        const uploadSection = document.getElementById('uploadSection');
+        const sorteioSection = document.getElementById('sorteioSection');
+        const resultadosSection = document.getElementById('resultadosSection');
+        const loginBtn = document.getElementById('loginBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const processBtn = document.getElementById('processBtn');
+        const fileInput = document.getElementById('fileInput');
+        const fileInfo = document.getElementById('fileInfo');
+        const ganhadoresContainer = document.getElementById('ganhadoresContainer');
+        const gerarTextoBtn = document.getElementById('gerarTextoBtn');
+
+        // Variáveis globais
+        let clientesFiltrados = [];
+        let ganhadores = {
+            caragua1: null,
+            caragua2: null,
+            ubatuba1: null,
+            ubatuba2: null
+        };
+
+        // Event Listeners
+        loginBtn.addEventListener('click', fazerLogin);
+        logoutBtn.addEventListener('click', fazerLogout);
+        fileInput.addEventListener('change', habilitarProcessamento);
+        processBtn.addEventListener('click', processarArquivo);
+        document.getElementById('sortearCaragua1').addEventListener('click', () => sortearCliente('caragua1'));
+        document.getElementById('sortearCaragua2').addEventListener('click', () => sortearCliente('caragua2'));
+        document.getElementById('sortearUbatuba1').addEventListener('click', () => sortearCliente('ubatuba1'));
+        document.getElementById('sortearUbatuba2').addEventListener('click', () => sortearCliente('ubatuba2'));
+        gerarTextoBtn.addEventListener('click', gerarTexto);
+
+        // Verifica se o usuário já está logado ao carregar a página
+        auth.onAuthStateChanged(user => {
+            if (user && (user.email === 'bioranss@gmail.com' || user.email.endsWith('@sejafibra.net'))) {
+                loginSection.classList.add('hidden');
+                uploadSection.classList.remove('hidden');
+                logoutBtn.classList.remove('hidden');
+            } else {
+                loginSection.classList.remove('hidden');
+                uploadSection.classList.add('hidden');
+                sorteioSection.classList.add('hidden');
+                resultadosSection.classList.add('hidden');
+                logoutBtn.classList.add('hidden');
+            }
+        });
+
+        // Funções
+        function fazerLogin() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            
+            if (email !== 'bioranss@gmail.com' && !email.endsWith('@sejafibra.net')) {
+                document.getElementById('loginMessage').textContent = 'Acesso não autorizado. Use um e-mail válido.';
+                return;
+            }
+
+            auth.signInWithEmailAndPassword(email, password)
+                .then(() => {
+                    document.getElementById('loginMessage').textContent = 'Login realizado com sucesso!';
+                })
+                .catch(error => {
+                    document.getElementById('loginMessage').textContent = 'Erro no login: ' + error.message;
+                });
+        }
+
+        function fazerLogout() {
+            auth.signOut()
+                .then(() => {
+                    document.getElementById('loginMessage').textContent = 'Logout realizado com sucesso!';
+                    clientesFiltrados = [];
+                    ganhadores = {
+                        caragua1: null,
+                        caragua2: null,
+                        ubatuba1: null,
+                        ubatuba2: null
+                    };
+                    ganhadoresContainer.innerHTML = '';
+                })
+                .catch(error => {
+                    document.getElementById('loginMessage').textContent = 'Erro no logout: ' + error.message;
+                });
+        }
+
+        function habilitarProcessamento() {
+            if (fileInput.files.length > 0) {
+                processBtn.disabled = false;
+                fileInfo.textContent = `Arquivo selecionado: ${fileInput.files[0].name}`;
+            } else {
+                processBtn.disabled = true;
+                fileInfo.textContent = '';
+            }
+        }
+
+        function processarArquivo() {
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+
+                // Processa os dados conforme as colunas especificadas
+                clientesFiltrados = jsonData.slice(1).map(row => {
+                    return {
+                        filial: row[1],  // Coluna B
+                        vencimento: row[4],  // Coluna E
+                        cliente: row[8],  // Coluna I
+                        valorPago: row[6],  // Coluna G
+                        dataPagamento: row[11]  // Coluna L
+                    };
+                }).filter(cliente => {
+                    // Filtra apenas clientes que pagaram em dia e com valor entre 60 e 90
+                    if (!cliente.dataPagamento || !cliente.vencimento) return false;
+                    
+                    const dataPagamento = new Date(cliente.dataPagamento);
+                    const dataVencimento = new Date(cliente.vencimento);
+                    const valorPago = parseFloat(cliente.valorPago) || 0;
+                    
+                    return dataPagamento < dataVencimento && 
+                           valorPago > 60 && valorPago < 90 &&
+                           (cliente.filial === 1 || cliente.filial === 5);
+                });
+
+                fileInfo.textContent += ` - ${clientesFiltrados.length} clientes elegíveis encontrados`;
+                sorteioSection.classList.remove('hidden');
+            };
+
+            reader.readAsArrayBuffer(file);
+        }
+
+        async function sortearCliente(tipo) {
+            const filial = tipo.includes('caragua') ? 5 : 1;
+            const clientesElegiveis = clientesFiltrados.filter(c => c.filial === filial);
+            
+            if (clientesElegiveis.length === 0) {
+                alert('Não há clientes elegíveis para este sorteio!');
+                return;
+            }
+
+            // Sorteia um cliente aleatório
+            const clienteSorteado = clientesElegiveis[Math.floor(Math.random() * clientesElegiveis.length)];
+            
+            // Verifica se o cliente já foi sorteado antes
+            try {
+                const snapshot = await database.ref('sorteios').orderByChild('cliente').equalTo(clienteSorteado.cliente).once('value');
+                if (snapshot.exists()) {
+                    const dataSorteioAnterior = Object.values(snapshot.val())[0].dataSorteio;
+                    if (confirm(`Sortear novamente! Cliente já em ${dataSorteioAnterior}. Deseja sortear outro?`)) {
+                        sortearCliente(tipo);
+                        return;
+                    } else {
+                        return;
+                    }
+                }
+            } catch (error) {
+                console.error('Erro ao verificar sorteio anterior:', error);
+            }
+
+            // Mostra o cliente sorteado e pede confirmação
+            if (confirm(`Cliente sorteado: ${clienteSorteado.cliente}\n\nConfirmar como ganhador?`)) {
+                ganhadores[tipo] = {
+                    nome: clienteSorteado.cliente,
+                    cidade: tipo.includes('caragua') ? 'Caraguá' : 'Ubatuba',
+                    bairro: ''
+                };
+                
+                // Registra no Firebase
+                const dataAtual = new Date().toISOString().split('T')[0];
+                database.ref('sorteios').push({
+                    cliente: clienteSorteado.cliente,
+                    dataSorteio: dataAtual,
+                    tipo: tipo
+                });
+                
+                atualizarGanhadores();
+            }
+        }
+
+        function atualizarGanhadores() {
+            ganhadoresContainer.innerHTML = '';
+            
+            if (ganhadores.caragua1 || ganhadores.caragua2 || ganhadores.ubatuba1 || ganhadores.ubatuba2) {
+                resultadosSection.classList.remove('hidden');
+            } else {
+                resultadosSection.classList.add('hidden');
+                return;
+            }
+            
+            for (const [tipo, ganhador] of Object.entries(ganhadores)) {
+                if (ganhador) {
+                    const div = document.createElement('div');
+                    div.className = 'ganhador';
+                    div.innerHTML = `
+                        <strong>${tipo.includes('1') ? '1º' : '2º'} Ganhador ${ganhador.cidade}:</strong> ${ganhador.nome}
+                        <input type="text" class="bairro-input" placeholder="Informe o bairro" 
+                               value="${ganhador.bairro}" 
+                               onchange="atualizarBairro('${tipo}', this.value)">
+                    `;
+                    ganhadoresContainer.appendChild(div);
+                }
+            }
+        }
+
+        function atualizarBairro(tipo, bairro) {
+            ganhadores[tipo].bairro = bairro;
+        }
+
+        function gerarTexto() {
+            let texto = `Segue ganhadores deste mês:\n\n-------------//-------------------------------------------\n`;
+            
+            if (ganhadores.caragua1) {
+                texto += `\n${ganhadores.caragua1.nome}\n${ganhadores.caragua1.bairro} - Caraguá\n`;
+            }
+            
+            if (ganhadores.caragua2) {
+                texto += `\n${ganhadores.caragua2.nome}\n${ganhadores.caragua2.bairro} - Caraguá\n`;
+            }
+            
+            if (ganhadores.ubatuba1) {
+                texto += `\n${ganhadores.ubatuba1.nome}\n${ganhadores.ubatuba1.bairro} - Ubatuba\n`;
+            }
+            
+            if (ganhadores.ubatuba2) {
+                texto += `\n${ganhadores.ubatuba2.nome}\n${ganhadores.ubatuba2.bairro} - Ubatuba\n`;
+            }
+            
+            texto += `\n-------------//-------------------------------------------`;
+            
+            navigator.clipboard.writeText(texto).then(() => {
+                alert('Texto copiado para a área de transferência!');
+            }).catch(err => {
+                console.error('Erro ao copiar texto: ', err);
+                // Fallback para navegadores mais antigos
+                const textarea = document.createElement('textarea');
+                textarea.value = texto;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                alert('Texto copiado para a área de transferência!');
+            });
+        }
+
+        // Torna a função acessível globalmente para o evento onchange
+        window.atualizarBairro = atualizarBairro;
+    </script>
+</body>
+</html>
