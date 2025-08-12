@@ -511,20 +511,25 @@
         }
 
         function carregarUltimosSorteios() {
-            database.ref('sorteios').orderByChild('dataSorteio').limitToLast(10).once('value')
+            database.ref('sorteios').once('value')
                 .then(snapshot => {
                     if (snapshot.exists()) {
                         const sorteios = [];
+                        
+                        // Percorre todos os nós filhos de 'sorteios'
                         snapshot.forEach(childSnapshot => {
                             const sorteio = childSnapshot.val();
-                            sorteio.key = childSnapshot.key;
+                            sorteio.id = childSnapshot.key; // Adiciona o ID do sorteio
                             sorteios.push(sorteio);
                         });
                         
                         // Ordena do mais recente para o mais antigo
                         sorteios.sort((a, b) => new Date(b.dataSorteio) - new Date(a.dataSorteio));
                         
-                        renderizarUltimosSorteios(sorteios);
+                        // Pega apenas os 10 mais recentes
+                        const ultimos10 = sorteios.slice(0, 10);
+                        
+                        renderizarUltimosSorteios(ultimos10);
                     } else {
                         ultimosSorteiosContainer.innerHTML = '<p>Nenhum sorteio realizado ainda.</p>';
                     }
@@ -535,6 +540,7 @@
                 });
         }
 
+        // Função para renderizar os sorteios (ajustada para o formato dos dados)
         function renderizarUltimosSorteios(sorteios) {
             ultimosSorteiosContainer.innerHTML = '';
             
@@ -547,21 +553,23 @@
                 const item = document.createElement('div');
                 item.className = 'sorteio-item';
                 
-                const cidadeClass = sorteio.tipo.includes('caragua') ? 'caragua' : 'ubatuba';
-                const cidadeText = sorteio.tipo.includes('caragua') ? 'Caraguá' : 'Ubatuba';
+                // Ajuste para os tipos "Caragua1", "Caragua2", etc.
+                const tipo = sorteio.tipo.toLowerCase();
+                const cidadeClass = tipo.includes('caragua') ? 'caragua' : 'ubatuba';
+                const cidadeText = tipo.includes('caragua') ? 'Caraguá' : 'Ubatuba';
+                const posicao = tipo.includes('1') ? '1º' : '2º';
                 
                 item.innerHTML = `
                     <div>
                         <span class="sorteio-cliente">${sorteio.cliente}</span>
                         <div class="sorteio-data">${formatarData(sorteio.dataSorteio)}</div>
                     </div>
-                    <span class="sorteio-cidade ${cidadeClass}">${cidadeText}</span>
+                    <span class="sorteio-cidade ${cidadeClass}">${posicao} ${cidadeText}</span>
                 `;
                 
                 ultimosSorteiosContainer.appendChild(item);
             });
         }
-
         function formatarData(dataString) {
             const options = { day: '2-digit', month: '2-digit', year: 'numeric' };
             return new Date(dataString).toLocaleDateString('pt-BR', options);
