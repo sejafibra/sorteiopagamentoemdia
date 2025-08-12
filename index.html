@@ -344,7 +344,7 @@
             <div id="loginMessage" class="login-message hidden"></div>
 
             <div class="ultimos-sorteios">
-                <h2 class="card-title"><i class="fas fa-history"></i> Últimos 10 Sorteios</h2>
+                <h2 class="card-title"><i class="fas fa-history"></i> Dashboard Contas a Receber</h2>
                 <div id="ultimosSorteiosContainer" class="sorteios-list">
                     <!-- Os últimos sorteios serão carregados aqui via JavaScript -->
                 </div>
@@ -535,8 +535,8 @@
                     }
                 })
                 .catch(error => {
-                    console.error('Erro ao carregar últimos sorteios:', error);
-                    ultimosSorteiosContainer.innerHTML = '<p>Erro ao carregar últimos sorteios.</p>';
+                    console.error('Entre com seus dados', error);
+                    ultimosSorteiosContainer.innerHTML = '<p>Entre com seus dados.</p>';
                 });
         }
 
