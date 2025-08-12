@@ -4,100 +4,392 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sorteio de Clientes em Dia</title>
-    <link rel="icon" href="https://raw.githubusercontent.com/sejafibra/agenda/refs/heads/main/faviconsf.ico" type="image/x-icon">
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
+        :root {
+            --primary-color: #4285F4;
+            --secondary-color: #34A853;
+            --accent-color: #EA4335;
+            --light-gray: #f5f5f5;
+            --medium-gray: #e0e0e0;
+            --dark-gray: #757575;
+            --text-color: #333333;
+            --white: #ffffff;
+        }
+        
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
         body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
+            font-family: 'Roboto', sans-serif;
+            background-color: var(--light-gray);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
         }
-        .login-section, .upload-section, .sorteio-section, .resultados-section {
+        
+        header {
+            background-color: var(--white);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 15px 0;
             margin-bottom: 30px;
-            padding: 20px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
         }
-        button {
-            background-color: #4CAF50;
-            color: white;
-            padding: 10px 15px;
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .logo i {
+            color: var(--primary-color);
+            font-size: 24px;
+        }
+        
+        .logo h1 {
+            font-size: 20px;
+            font-weight: 500;
+        }
+        
+        .card {
+            background-color: var(--white);
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            padding: 25px;
+            margin-bottom: 30px;
+        }
+        
+        .card-title {
+            font-size: 18px;
+            font-weight: 500;
+            margin-bottom: 20px;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .card-title i {
+            font-size: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        
+        input[type="email"],
+        input[type="password"],
+        input[type="text"],
+        input[type="file"] {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid var(--medium-gray);
+            border-radius: 4px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 20px;
             border: none;
             border-radius: 4px;
+            font-size: 16px;
+            font-weight: 500;
             cursor: pointer;
-            margin: 5px;
+            transition: all 0.3s;
         }
-        button:hover {
-            background-color: #45a049;
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: var(--white);
         }
-        button:disabled {
-            background-color: #cccccc;
+        
+        .btn-primary:hover {
+            background-color: #3367d6;
+        }
+        
+        .btn-secondary {
+            background-color: var(--secondary-color);
+            color: var(--white);
+        }
+        
+        .btn-secondary:hover {
+            background-color: #2d9249;
+        }
+        
+        .btn-danger {
+            background-color: var(--accent-color);
+            color: var(--white);
+        }
+        
+        .btn-danger:hover {
+            background-color: #d33426;
+        }
+        
+        .btn:disabled {
+            background-color: var(--medium-gray);
             cursor: not-allowed;
         }
-        input[type="file"] {
-            margin: 10px 0;
+        
+        .file-info {
+            margin-top: 15px;
+            padding: 12px;
+            background-color: var(--light-gray);
+            border-radius: 4px;
+            font-size: 14px;
         }
-        table {
-            width: 100%;
-            border-collapse: collapse;
+        
+        .sorteio-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
             margin-top: 20px;
         }
-        th, td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: left;
+        
+        .sorteio-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 15px;
+            background-color: var(--light-gray);
+            border-radius: 8px;
+            transition: all 0.3s;
+            cursor: pointer;
+            border: none;
+            text-align: center;
         }
-        th {
-            background-color: #f2f2f2;
+        
+        .sorteio-btn:hover {
+            background-color: var(--medium-gray);
         }
-        .ganhador {
-            margin: 10px 0;
-            padding: 10px;
-            background-color: #f9f9f9;
-            border-left: 4px solid #4CAF50;
+        
+        .sorteio-btn i {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: var(--primary-color);
         }
+        
+        .ganhadores-container {
+            margin-top: 30px;
+        }
+        
+        .ganhador-card {
+            background-color: var(--light-gray);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .ganhador-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .ganhador-title {
+            font-weight: 500;
+            color: var(--secondary-color);
+        }
+        
+        .ganhador-name {
+            font-size: 18px;
+        }
+        
+        .bairro-input-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
         .bairro-input {
-            margin-left: 10px;
-            padding: 5px;
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid var(--medium-gray);
+            border-radius: 4px;
         }
+        
         .hidden {
             display: none;
+        }
+        
+        .login-message {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .error-message {
+            background-color: #ffebee;
+            color: var(--accent-color);
+        }
+        
+        .success-message {
+            background-color: #e8f5e9;
+            color: var(--secondary-color);
+        }
+        
+        .ultimos-sorteios {
+            margin-top: 40px;
+        }
+        
+        .sorteios-list {
+            margin-top: 20px;
+        }
+        
+        .sorteio-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--medium-gray);
+        }
+        
+        .sorteio-item:last-child {
+            border-bottom: none;
+        }
+        
+        .sorteio-cliente {
+            font-weight: 500;
+        }
+        
+        .sorteio-data {
+            color: var(--dark-gray);
+            font-size: 14px;
+        }
+        
+        .sorteio-cidade {
+            background-color: var(--primary-color);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .sorteio-cidade.caragua {
+            background-color: #4285F4;
+        }
+        
+        .sorteio-cidade.ubatuba {
+            background-color: #34A853;
+        }
+        
+        @media (max-width: 768px) {
+            .sorteio-buttons {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="login-section" id="loginSection">
-        <h2>Login</h2>
-        <input type="email" id="email" placeholder="E-mail" required>
-        <input type="password" id="password" placeholder="Senha" required>
-        <button id="loginBtn">Entrar</button>
-        <button id="logoutBtn" class="hidden">Sair</button>
-        <p id="loginMessage"></p>
-    </div>
+    <header>
+        <div class="container header-content">
+            <div class="logo">
+                <i class="fas fa-trophy"></i>
+                <h1>Sorteio de Clientes em Dia</h1>
+            </div>
+            <button id="logoutBtn" class="btn btn-danger hidden"><i class="fas fa-sign-out-alt"></i> Sair</button>
+        </div>
+    </header>
 
-    <div class="upload-section hidden" id="uploadSection">
-        <h2>Upload do Arquivo</h2>
-        <input type="file" id="fileInput" accept=".xls,.xlsx">
-        <button id="processBtn" disabled>Processar Arquivo</button>
-        <div id="fileInfo"></div>
-    </div>
+    <div class="container">
+        <div class="card" id="loginSection">
+            <h2 class="card-title"><i class="fas fa-sign-in-alt"></i> Login</h2>
+            <div class="form-group">
+                <label for="email">E-mail</label>
+                <input type="email" id="email" placeholder="Digite seu e-mail" required>
+            </div>
+            <div class="form-group">
+                <label for="password">Senha</label>
+                <input type="password" id="password" placeholder="Digite sua senha" required>
+            </div>
+            <button id="loginBtn" class="btn btn-primary"><i class="fas fa-sign-in-alt"></i> Entrar</button>
+            <div id="loginMessage" class="login-message hidden"></div>
 
-    <div class="sorteio-section hidden" id="sorteioSection">
-        <h2>Sorteio</h2>
-        <button id="sortearCaragua1">Sortear 1º cliente Caraguá</button>
-        <button id="sortearCaragua2">Sortear 2º cliente Caraguá</button>
-        <button id="sortearUbatuba1">Sortear 1º cliente Ubatuba</button>
-        <button id="sortearUbatuba2">Sortear 2º cliente Ubatuba</button>
-    </div>
+            <div class="ultimos-sorteios">
+                <h2 class="card-title"><i class="fas fa-history"></i> Últimos 10 Sorteios</h2>
+                <div id="ultimosSorteiosContainer" class="sorteios-list">
+                    <!-- Os últimos sorteios serão carregados aqui via JavaScript -->
+                </div>
+            </div>
+        </div>
 
-    <div class="resultados-section hidden" id="resultadosSection">
-        <h2>Resultados</h2>
-        <div id="ganhadoresContainer"></div>
-        <button id="gerarTextoBtn">Gerar Texto</button>
+        <div class="card hidden" id="uploadSection">
+            <h2 class="card-title"><i class="fas fa-file-upload"></i> Upload do Arquivo</h2>
+            <div class="form-group">
+                <label for="fileInput">Selecione o arquivo XLS/XLSX</label>
+                <input type="file" id="fileInput" accept=".xls,.xlsx">
+            </div>
+            <button id="processBtn" class="btn btn-secondary" disabled><i class="fas fa-cog"></i> Processar Arquivo</button>
+            <div id="fileInfo" class="file-info hidden"></div>
+        </div>
+
+        <div class="card hidden" id="sorteioSection">
+            <h2 class="card-title"><i class="fas fa-random"></i> Sorteio</h2>
+            <div class="sorteio-buttons">
+                <button id="sortearCaragua1" class="sorteio-btn">
+                    <i class="fas fa-user-tie"></i>
+                    Sortear 1º cliente Caraguá
+                </button>
+                <button id="sortearCaragua2" class="sorteio-btn">
+                    <i class="fas fa-user-tie"></i>
+                    Sortear 2º cliente Caraguá
+                </button>
+                <button id="sortearUbatuba1" class="sorteio-btn">
+                    <i class="fas fa-user-tie"></i>
+                    Sortear 1º cliente Ubatuba
+                </button>
+                <button id="sortearUbatuba2" class="sorteio-btn">
+                    <i class="fas fa-user-tie"></i>
+                    Sortear 2º cliente Ubatuba
+                </button>
+            </div>
+        </div>
+
+        <div class="card hidden" id="resultadosSection">
+            <h2 class="card-title"><i class="fas fa-award"></i> Resultados</h2>
+            <div id="ganhadoresContainer" class="ganhadores-container">
+                <!-- Os ganhadores serão exibidos aqui -->
+            </div>
+            <button id="gerarTextoBtn" class="btn btn-primary"><i class="fas fa-copy"></i> Gerar Texto</button>
+        </div>
     </div>
 
     <script>
@@ -129,6 +421,8 @@
         const fileInfo = document.getElementById('fileInfo');
         const ganhadoresContainer = document.getElementById('ganhadoresContainer');
         const gerarTextoBtn = document.getElementById('gerarTextoBtn');
+        const ultimosSorteiosContainer = document.getElementById('ultimosSorteiosContainer');
+        const loginMessage = document.getElementById('loginMessage');
 
         // Variáveis globais
         let clientesFiltrados = [];
@@ -156,12 +450,14 @@
                 loginSection.classList.add('hidden');
                 uploadSection.classList.remove('hidden');
                 logoutBtn.classList.remove('hidden');
+                carregarUltimosSorteios();
             } else {
                 loginSection.classList.remove('hidden');
                 uploadSection.classList.add('hidden');
                 sorteioSection.classList.add('hidden');
                 resultadosSection.classList.add('hidden');
                 logoutBtn.classList.add('hidden');
+                carregarUltimosSorteios();
             }
         });
 
@@ -171,23 +467,35 @@
             const password = document.getElementById('password').value;
             
             if (email !== 'bioranss@gmail.com' && !email.endsWith('@sejafibra.net')) {
-                document.getElementById('loginMessage').textContent = 'Acesso não autorizado. Use um e-mail válido.';
+                showMessage('Acesso não autorizado. Use um e-mail válido.', 'error');
                 return;
             }
 
             auth.signInWithEmailAndPassword(email, password)
                 .then(() => {
-                    document.getElementById('loginMessage').textContent = 'Login realizado com sucesso!';
+                    showMessage('Login realizado com sucesso!', 'success');
+                    carregarUltimosSorteios();
                 })
                 .catch(error => {
-                    document.getElementById('loginMessage').textContent = 'Erro no login: ' + error.message;
+                    showMessage('Erro no login: ' + error.message, 'error');
                 });
+        }
+
+        function showMessage(message, type) {
+            loginMessage.textContent = message;
+            loginMessage.className = 'login-message';
+            loginMessage.classList.add(type === 'error' ? 'error-message' : 'success-message');
+            loginMessage.classList.remove('hidden');
+            
+            setTimeout(() => {
+                loginMessage.classList.add('hidden');
+            }, 5000);
         }
 
         function fazerLogout() {
             auth.signOut()
                 .then(() => {
-                    document.getElementById('loginMessage').textContent = 'Logout realizado com sucesso!';
+                    showMessage('Logout realizado com sucesso!', 'success');
                     clientesFiltrados = [];
                     ganhadores = {
                         caragua1: null,
@@ -198,17 +506,76 @@
                     ganhadoresContainer.innerHTML = '';
                 })
                 .catch(error => {
-                    document.getElementById('loginMessage').textContent = 'Erro no logout: ' + error.message;
+                    showMessage('Erro no logout: ' + error.message, 'error');
                 });
+        }
+
+        function carregarUltimosSorteios() {
+            database.ref('sorteios').orderByChild('dataSorteio').limitToLast(10).once('value')
+                .then(snapshot => {
+                    if (snapshot.exists()) {
+                        const sorteios = [];
+                        snapshot.forEach(childSnapshot => {
+                            const sorteio = childSnapshot.val();
+                            sorteio.key = childSnapshot.key;
+                            sorteios.push(sorteio);
+                        });
+                        
+                        // Ordena do mais recente para o mais antigo
+                        sorteios.sort((a, b) => new Date(b.dataSorteio) - new Date(a.dataSorteio));
+                        
+                        renderizarUltimosSorteios(sorteios);
+                    } else {
+                        ultimosSorteiosContainer.innerHTML = '<p>Nenhum sorteio realizado ainda.</p>';
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro ao carregar últimos sorteios:', error);
+                    ultimosSorteiosContainer.innerHTML = '<p>Erro ao carregar últimos sorteios.</p>';
+                });
+        }
+
+        function renderizarUltimosSorteios(sorteios) {
+            ultimosSorteiosContainer.innerHTML = '';
+            
+            if (sorteios.length === 0) {
+                ultimosSorteiosContainer.innerHTML = '<p>Nenhum sorteio realizado ainda.</p>';
+                return;
+            }
+            
+            sorteios.forEach(sorteio => {
+                const item = document.createElement('div');
+                item.className = 'sorteio-item';
+                
+                const cidadeClass = sorteio.tipo.includes('caragua') ? 'caragua' : 'ubatuba';
+                const cidadeText = sorteio.tipo.includes('caragua') ? 'Caraguá' : 'Ubatuba';
+                
+                item.innerHTML = `
+                    <div>
+                        <span class="sorteio-cliente">${sorteio.cliente}</span>
+                        <div class="sorteio-data">${formatarData(sorteio.dataSorteio)}</div>
+                    </div>
+                    <span class="sorteio-cidade ${cidadeClass}">${cidadeText}</span>
+                `;
+                
+                ultimosSorteiosContainer.appendChild(item);
+            });
+        }
+
+        function formatarData(dataString) {
+            const options = { day: '2-digit', month: '2-digit', year: 'numeric' };
+            return new Date(dataString).toLocaleDateString('pt-BR', options);
         }
 
         function habilitarProcessamento() {
             if (fileInput.files.length > 0) {
                 processBtn.disabled = false;
                 fileInfo.textContent = `Arquivo selecionado: ${fileInput.files[0].name}`;
+                fileInfo.classList.remove('hidden');
             } else {
                 processBtn.disabled = true;
                 fileInfo.textContent = '';
+                fileInfo.classList.add('hidden');
             }
         }
 
@@ -244,7 +611,8 @@
                            (cliente.filial === 1 || cliente.filial === 5);
                 });
 
-                fileInfo.textContent += ` - ${clientesFiltrados.length} clientes com pagamento em dia encontrados`;
+                fileInfo.textContent = `Arquivo processado: ${file.name} - ${clientesFiltrados.length} clientes elegíveis encontrados`;
+                fileInfo.classList.remove('hidden');
                 sorteioSection.classList.remove('hidden');
             };
 
@@ -268,7 +636,7 @@
                 const snapshot = await database.ref('sorteios').orderByChild('cliente').equalTo(clienteSorteado.cliente).once('value');
                 if (snapshot.exists()) {
                     const dataSorteioAnterior = Object.values(snapshot.val())[0].dataSorteio;
-                    if (confirm(`Sortear novamente! Cliente já em ${dataSorteioAnterior}. Deseja sortear outro?`)) {
+                    if (confirm(`Sortear novamente! Cliente já em ${formatarData(dataSorteioAnterior)}. Deseja sortear outro?`)) {
                         sortearCliente(tipo);
                         return;
                     } else {
@@ -293,6 +661,8 @@
                     cliente: clienteSorteado.cliente,
                     dataSorteio: dataAtual,
                     tipo: tipo
+                }).then(() => {
+                    carregarUltimosSorteios(); // Atualiza a lista de últimos sorteios
                 });
                 
                 atualizarGanhadores();
@@ -311,15 +681,23 @@
             
             for (const [tipo, ganhador] of Object.entries(ganhadores)) {
                 if (ganhador) {
-                    const div = document.createElement('div');
-                    div.className = 'ganhador';
-                    div.innerHTML = `
-                        <strong>${tipo.includes('1') ? '1º' : '2º'} Ganhador ${ganhador.cidade}:</strong> ${ganhador.nome}
-                        <input type="text" class="bairro-input" placeholder="Informe o bairro" 
-                               value="${ganhador.bairro}" 
-                               onchange="atualizarBairro('${tipo}', this.value)">
+                    const card = document.createElement('div');
+                    card.className = 'ganhador-card';
+                    
+                    card.innerHTML = `
+                        <div class="ganhador-header">
+                            <div class="ganhador-title">${tipo.includes('1') ? '1º' : '2º'} Ganhador ${ganhador.cidade}</div>
+                        </div>
+                        <div class="ganhador-name">${ganhador.nome}</div>
+                        <div class="bairro-input-container">
+                            <input type="text" class="bairro-input" placeholder="Informe o bairro" 
+                                   value="${ganhador.bairro}" 
+                                   onchange="atualizarBairro('${tipo}', this.value)">
+                            <i class="fas fa-map-marker-alt"></i>
+                        </div>
                     `;
-                    ganhadoresContainer.appendChild(div);
+                    
+                    ganhadoresContainer.appendChild(card);
                 }
             }
         }
@@ -332,19 +710,19 @@
             let texto = `Segue ganhadores deste mês:\n\n-------------//-------------------------------------------\n`;
             
             if (ganhadores.caragua1) {
-                texto += `\n${ganhadores.caragua1.nome}\n${ganhadores.caragua1.bairro} - Caraguá\n`;
+                texto += `\n${ganhadores.caragua1.nome}\n${ganhadores.caragua1.bairro || '[bairro não informado]'} - Caraguá\n`;
             }
             
             if (ganhadores.caragua2) {
-                texto += `\n${ganhadores.caragua2.nome}\n${ganhadores.caragua2.bairro} - Caraguá\n`;
+                texto += `\n${ganhadores.caragua2.nome}\n${ganhadores.caragua2.bairro || '[bairro não informado]'} - Caraguá\n`;
             }
             
             if (ganhadores.ubatuba1) {
-                texto += `\n${ganhadores.ubatuba1.nome}\n${ganhadores.ubatuba1.bairro} - Ubatuba\n`;
+                texto += `\n${ganhadores.ubatuba1.nome}\n${ganhadores.ubatuba1.bairro || '[bairro não informado]'} - Ubatuba\n`;
             }
             
             if (ganhadores.ubatuba2) {
-                texto += `\n${ganhadores.ubatuba2.nome}\n${ganhadores.ubatuba2.bairro} - Ubatuba\n`;
+                texto += `\n${ganhadores.ubatuba2.nome}\n${ganhadores.ubatuba2.bairro || '[bairro não informado]'} - Ubatuba\n`;
             }
             
             texto += `\n-------------//-------------------------------------------`;
