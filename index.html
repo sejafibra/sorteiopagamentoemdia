@@ -266,51 +266,6 @@
             color: var(--secondary-color);
         }
         
-        .ultimos-sorteios {
-            margin-top: 40px;
-        }
-        
-        .sorteios-list {
-            margin-top: 20px;
-        }
-        
-        .sorteio-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 12px 0;
-            border-bottom: 1px solid var(--medium-gray);
-        }
-        
-        .sorteio-item:last-child {
-            border-bottom: none;
-        }
-        
-        .sorteio-cliente {
-            font-weight: 500;
-        }
-        
-        .sorteio-data {
-            color: var(--dark-gray);
-            font-size: 14px;
-        }
-        
-        .sorteio-cidade {
-            background-color: var(--primary-color);
-            color: white;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 500;
-        }
-        
-        .sorteio-cidade.caragua {
-            background-color: #4285F4;
-        }
-        
-        .sorteio-cidade.ubatuba {
-            background-color: #34A853;
-        }
-        
         @media (max-width: 768px) {
             .sorteio-buttons {
                 grid-template-columns: 1fr;
@@ -342,13 +297,6 @@
             </div>
             <button id="loginBtn" class="btn btn-primary"><i class="fas fa-sign-in-alt"></i> Entrar</button>
             <div id="loginMessage" class="login-message hidden"></div>
-
-            <div class="ultimos-sorteios">
-                <h2 class="card-title"><i class="fas fa-history"></i> Dashboard Contas a Receber</h2>
-                <div id="ultimosSorteiosContainer" class="sorteios-list">
-                    <!-- Os últimos sorteios serão carregados aqui via JavaScript -->
-                </div>
-            </div>
         </div>
 
         <div class="card hidden" id="uploadSection">
@@ -421,7 +369,6 @@
         const fileInfo = document.getElementById('fileInfo');
         const ganhadoresContainer = document.getElementById('ganhadoresContainer');
         const gerarTextoBtn = document.getElementById('gerarTextoBtn');
-        const ultimosSorteiosContainer = document.getElementById('ultimosSorteiosContainer');
         const loginMessage = document.getElementById('loginMessage');
 
         // Variáveis globais
@@ -450,14 +397,12 @@
                 loginSection.classList.add('hidden');
                 uploadSection.classList.remove('hidden');
                 logoutBtn.classList.remove('hidden');
-                carregarUltimosSorteios();
             } else {
                 loginSection.classList.remove('hidden');
                 uploadSection.classList.add('hidden');
                 sorteioSection.classList.add('hidden');
                 resultadosSection.classList.add('hidden');
                 logoutBtn.classList.add('hidden');
-                carregarUltimosSorteios();
             }
         });
 
@@ -474,7 +419,6 @@
             auth.signInWithEmailAndPassword(email, password)
                 .then(() => {
                     showMessage('Login realizado com sucesso!', 'success');
-                    carregarUltimosSorteios();
                 })
                 .catch(error => {
                     showMessage('Erro no login: ' + error.message, 'error');
@@ -508,71 +452,6 @@
                 .catch(error => {
                     showMessage('Erro no logout: ' + error.message, 'error');
                 });
-        }
-
-        function carregarUltimosSorteios() {
-            database.ref('sorteios').once('value')
-                .then(snapshot => {
-                    if (snapshot.exists()) {
-                        const sorteios = [];
-                        
-                        // Percorre todos os nós filhos de 'sorteios'
-                        snapshot.forEach(childSnapshot => {
-                            const sorteio = childSnapshot.val();
-                            sorteio.id = childSnapshot.key; // Adiciona o ID do sorteio
-                            sorteios.push(sorteio);
-                        });
-                        
-                        // Ordena do mais recente para o mais antigo
-                        sorteios.sort((a, b) => new Date(b.dataSorteio) - new Date(a.dataSorteio));
-                        
-                        // Pega apenas os 10 mais recentes
-                        const ultimos10 = sorteios.slice(0, 10);
-                        
-                        renderizarUltimosSorteios(ultimos10);
-                    } else {
-                        ultimosSorteiosContainer.innerHTML = '<p>Nenhum sorteio realizado ainda.</p>';
-                    }
-                })
-                .catch(error => {
-                    console.error('Entre com seus dados', error);
-                    ultimosSorteiosContainer.innerHTML = '<p>Entre com seus dados.</p>';
-                });
-        }
-
-        // Função para renderizar os sorteios (ajustada para o formato dos dados)
-        function renderizarUltimosSorteios(sorteios) {
-            ultimosSorteiosContainer.innerHTML = '';
-            
-            if (sorteios.length === 0) {
-                ultimosSorteiosContainer.innerHTML = '<p>Nenhum sorteio realizado ainda.</p>';
-                return;
-            }
-            
-            sorteios.forEach(sorteio => {
-                const item = document.createElement('div');
-                item.className = 'sorteio-item';
-                
-                // Ajuste para os tipos "Caragua1", "Caragua2", etc.
-                const tipo = sorteio.tipo.toLowerCase();
-                const cidadeClass = tipo.includes('caragua') ? 'caragua' : 'ubatuba';
-                const cidadeText = tipo.includes('caragua') ? 'Caraguá' : 'Ubatuba';
-                const posicao = tipo.includes('1') ? '1º' : '2º';
-                
-                item.innerHTML = `
-                    <div>
-                        <span class="sorteio-cliente">${sorteio.cliente}</span>
-                        <div class="sorteio-data">${formatarData(sorteio.dataSorteio)}</div>
-                    </div>
-                    <span class="sorteio-cidade ${cidadeClass}">${posicao} ${cidadeText}</span>
-                `;
-                
-                ultimosSorteiosContainer.appendChild(item);
-            });
-        }
-        function formatarData(dataString) {
-            const options = { day: '2-digit', month: '2-digit', year: 'numeric' };
-            return new Date(dataString).toLocaleDateString('pt-BR', options);
         }
 
         function habilitarProcessamento() {
@@ -669,12 +548,15 @@
                     cliente: clienteSorteado.cliente,
                     dataSorteio: dataAtual,
                     tipo: tipo
-                }).then(() => {
-                    carregarUltimosSorteios(); // Atualiza a lista de últimos sorteios
                 });
                 
                 atualizarGanhadores();
             }
+        }
+
+        function formatarData(dataString) {
+            const options = { day: '2-digit', month: '2-digit', year: 'numeric' };
+            return new Date(dataString).toLocaleDateString('pt-BR', options);
         }
 
         function atualizarGanhadores() {
